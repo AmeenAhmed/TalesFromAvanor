@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+  <head>
+      <title>King of Avanor</title>
+      <link rel="stylesheet" href="css/main.css"/>
+      
+  </head>
+  <body>
+      <div class="game">
+        <div class="book">
+            <div class="left-page">
+                <div class="page-title"></div>
+                <div class="page-content"></div>
+                <div class="page-button next day">Next Day!</div>
+            </div>
+            <div class="right-page">
+                <div class="page-title"></div>
+                <div class="page-content"></div>
+            </div>
+            <div class="modal-container"></div>
+        </div>
+        <div class="book-closed">
+            <div class="title">Tales from Avanor</div>
+            <div class="sub-text">Click anywhere to start</div>
+        </div>
+        <div class="intro-modal modal-view-container">
+            <div class="modal">
+                After what seems like an eternity, you finally ascend to the throne as the 
+                king of Avanor. You vow to defend the kingdom from the barbarians that killed
+                your father. The kingdom is in disarray from the last barbarian raid. You make
+                your way to your court to start the first day as king.
+                <br/><br/>
+                Note: Tales of Avanor is a combination of a choose your own adventure style game
+                and a kingdom management game. The game is played in turns/days. Each day you get
+                4 action points which can be spent on hiring units or workers and building buildings.
+                Periodically you must defend your kingdom from barbarians. your garrison must have
+                enough strength to defeat them or the game will be over. Good luck.
+
+                <div class="action-btn active lets-go">Lets go!</div>
+            </div>    
+        </div>
+      </div>
+      <script type="text/javascript" src="js/jquery.min.js"></script>
+      <script type="text/javascript" src="js/lodash.min.js"></script>
+      <script type="text/javascript" src="js/techTree.js"></script>
+      <script type="text/javascript" src="js/waves.js"></script>
+      <script type="text/javascript" src="js/buildings.js"></script>
+      <script type="text/javascript" src="js/units.js"></script>
+      <script type="text/javascript" src="js/building.js"></script>
+      <script type="text/javascript" src="js/person.js"></script>
+      <script type="text/javascript" src="js/city.js"></script>
+      <script type="text/javascript" src="js/game.js"></script>
+      <script type="text/javascript" src="js/main.js"></script>
+
+      <!-- Templates -->
+      <script type="text/template" id="main-menu-view">
+        <div class="main-menu">
+            <div class="main-menu-btn" id="new-game">
+                New Game
+            </div>
+            <div class="main-menu-btn" id="load-game">
+                Load Game
+            </div>
+        </div>
+      </script>
+
+      <script type="text/template" id="new-game-view">
+        <div class="new-game form">
+            <div class="field">
+                <label>My name is ...</label>
+                <input class="textbox" type="text" id="new-game-name"/>
+            </div>
+            <div class="field">
+                <label>I want to be the king of ...</label>
+                <div class="option-group" id="new-game-kingdom">
+                    <div class="option">
+                        <div class="circle"></div>
+                        <div class="label">Muscovia</div>
+                    </div>
+                    <div class="option">
+                        <div class="circle"></div>
+                        <div class="label">Brytonia</div>
+                    </div>
+                    <div class="option">
+                        <div class="circle"></div>
+                        <div class="label">Cairoba</div>
+                    </div>
+                    <div class="option">
+                        <div class="circle"></div>
+                        <div class="label">Hindia</div>
+                    </div>
+                    <div class="option">
+                        <div class="circle"></div>
+                        <div class="label">Matuba</div>
+                    </div>
+                </div>
+            </div>
+            <div class="field center-content">
+                <div class="action-btn" id="new-game-btn">Lets go!</div>
+            </div>
+        </div>
+      </script>
+      <script type="text/template" id="court-view">
+        <div class="court-view-container">
+            <div class="header">
+                <div class="date"><%= date %></div>
+                <div class="action-points">Action Points: <%= actionPoints %></div>
+                <div class="progress">
+                    <div class="bar" style="width: <%= game.getBarbarianAttackPercent () %>%;"></div>
+                </div>
+                <label class="attack-label">Barbarians attack in <%= game.props.barbarianAttackIn.remaining %> days</label>
+            </div>
+            <div class="messages">
+                
+            </div>
+        </div>
+      </script>
+      <script type="text/template" id="garrison-view">
+        <div class="garrison-view-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Garrison</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(var key in avanor.game.props.garrison) { %>
+                        <tr>
+                            <td class="key"><%= key %></td>
+                            <td class="value"><%= avanor.game.props.garrison [key] %></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+            our total army damage is <%= avanor.game.getArmyDamage () %>
+            <br/>
+            our total army hit points are <%= avanor.game.getArmyHp () %>
+            <div class="garrison-back back-btn">Let us discuss something else</div>
+        </div>
+      </script>
+      <script type="text/template" id="inventory-view">
+        <div class="inventory-view-container">
+            <% for (var key in avanor.game.props.resources) { %> 
+                <div class="resource">
+                    <% if(key !== 'workers' && key !== 'occWorkers') { %>
+                        <%= key %> : <%= avanor.game.props.resources [key]%> / <%= (avanor.game.props.resourcesPerDay [key] > 0 ? '+' : '') +  avanor.game.props.resourcesPerDay [key]%> every day
+                    <% } %>
+                </div>
+            <% } %>
+            <div class="inventory-view-back back-btn">Let us discuss something else</div>
+        </div>
+      </script>
+
+      <script type="text/template" id="research-view">
+        <div class="research-view-container">
+            <% for (var i=0; i<researches.length; i++) { %> 
+                <div class="research">
+                    <div class="title">
+                        <%= researches [i].name %>
+                    </div>
+                    unlocks,
+                    <div class="unlocks">
+                        <% for (var j=0; j<researches [i].unlocks.length; j++) { %> 
+                            <%= researches [i].unlocks [j].type %> : <%= researches [i].unlocks [j].name %>
+                        <% } %>
+                    </div>
+                    <div class="days-to-complete">
+                        Takes <%= researches [i].daysToComplete %> days to complete
+                    </div>
+                    <% if(!researches [i].requirements || avanor.game.props.research.indexOf (researches [i].requirements) !== -1) { %>
+                        <div class="research-btn" data-key="<%= researches [i].name %>">Research</div>
+                    <% } else { %>
+                        <div class="requirement">Requires <%= researches [i].requirements %></div>
+                    <% } %>
+                    
+                </div>
+            <% } %>
+            <div class="research-view-back back-btn">Let us discuss something else</div>
+        </div>
+      </script>
+      <script type="text/template" id="barbarian-view">
+        <div class="barbarian-view-container modal-view-container">
+            <div class="barbarian-view-modal modal">
+                <div class="view-1">
+                    <div class="msg">The barbarians are here!!</div>
+                    <div class="prepare-btn">Prepare for attack</div>
+                </div>
+
+                <div class="view-2">
+                    <div class="our-army">
+                        <div class="title">Our Army</div>
+                        <label class="attack-label attack-value">Attack : 1000</label>
+                        <div class="progress">
+                            <div class="bar" style="width: 100%">
+                    
+                            </div>
+                        </div>
+                        <label class="attack-label hp-value">100/100</label>
+                    </div>
+                    <div class="barbarians">
+                        <div class="title">Barbarians</div>
+                        <label class="attack-label attack-value">Attack : 1000</label>
+                        <div class="progress">
+                            <div class="bar" style="width: 100%">
+                    
+                            </div>
+                        </div>
+                        <label class="attack-label hp-value">100/100</label>
+                    </div>
+                    <div class="next-turn">Next turn</div>
+                </div>
+                <div class="win">
+                    You defeated the barbarians!!
+                </div>
+                <div class="defeat">
+                    You lost, the barbarians pillage the kingdom
+                </div>
+            </div>
+        </div>
+      </script>
+  </body>
+</html>
